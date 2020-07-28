@@ -54,15 +54,23 @@ def read_targets(log, show_all):
 
     targets = {}
     last_end_seen = 0
+    offset = 0
     for line in log:
         start, end, _, name, cmdhash = line.strip().split('\t') # Ignore restat.
-        if not show_all and int(end) < last_end_seen:
-            # An earlier time stamp means that this step is the first in a new
-            # build, possibly an incremental build. Throw away the previous data
-            # so that this new build will be displayed independently.
-            targets = {}
-        last_end_seen = int(end)
-        targets.setdefault(cmdhash, Target(start, end)).targets.append(name)
+        start = int(start)
+        end = int(end)
+        if end < last_end_seen:
+            if not show_all:
+                # An earlier time stamp means that this step is the first in a new
+                # build, possibly an incremental build. Throw away the previous data
+                # so that this new build will be displayed independently.
+                targets = {}
+            else:
+                offset += last_end_seen + 60000
+        last_end_seen = end
+        #print(start, end, offset + start, offset + end)
+        targets.setdefault(cmdhash, Target(offset + start, offset + end)).targets.append(name)
+    #exit(0)
     return sorted(targets.values(), key=lambda job: job.end, reverse=True)
 
 
